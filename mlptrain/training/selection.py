@@ -65,6 +65,7 @@ class SelectionMethod(ABC):
 
 
 class AbsDiffE(SelectionMethod):
+
     def __init__(self, e_thresh: float = 0.1):
         """
         Selection method based on the absolute difference between the
@@ -95,10 +96,8 @@ class AbsDiffE(SelectionMethod):
         self._configuration = configuration
 
         if method_name is None:
-            raise ValueError(
-                'Evaluating the absolute difference requires a '
-                'method name but None was present'
-            )
+            raise ValueError('Evaluating the absolute difference requires a '
+                             'method name but None was present')
 
         if configuration.energy.predicted is None:
             self._configuration.single_point(mlp)
@@ -132,6 +131,7 @@ class AbsDiffE(SelectionMethod):
 
 
 class AtomicEnvSimilarity(SelectionMethod):
+
     def __init__(self, descriptor, threshold: float = 0.999):
         """
         Selection criteria based on the maximum distance between any of the
@@ -177,8 +177,7 @@ class AtomicEnvSimilarity(SelectionMethod):
             return None
 
         self._k_vec = self.descriptor.kernel_vector(
-            configuration, configurations=mlp.training_data, zeta=8
-        )
+            configuration, configurations=mlp.training_data, zeta=8)
 
         return None
 
@@ -274,6 +273,7 @@ def _outlier_identifier(
 
 
 class AtomicEnvDistance(SelectionMethod):
+
     def __init__(
         self,
         descriptor,

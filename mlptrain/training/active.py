@@ -165,8 +165,7 @@ def train(
         if any([bias, fbond_energy, bbond_energy, constraints]):
             raise NotImplementedError(
                 "The OpenMM backend does not support the use of the 'bias', "
-                "'fbond_energy', 'bbond_energy', or 'constraints' arguments."
-            )
+                "'fbond_energy', 'bbond_energy', or 'constraints' arguments.")
 
     _check_bias(bias=bias, temp=temp, inherit_metad_bias=inherit_metad_bias)
 
@@ -203,9 +202,8 @@ def train(
         )
 
     if isinstance(bias, PlumedBias) and not bias.from_file:
-        _attach_plumed_coords_to_init_configs(
-            init_configs=mlp.training_data, bias=bias
-        )
+        _attach_plumed_coords_to_init_configs(init_configs=mlp.training_data,
+                                              bias=bias)
 
     if mlp.requires_atomic_energies:
         mlp.set_atomic_energies(method_name=method_name)
@@ -268,8 +266,7 @@ def train(
                 continue
         else:
             logger.info(
-                f'{mlp.n_train-previous_n_train} AL configurations found'
-            )
+                f'{mlp.n_train-previous_n_train} AL configurations found')
 
         # If required, remove high-lying energy configurations from the data
         if max_e_threshold is not None:
@@ -298,18 +295,15 @@ def _add_active_configs(
     based on active learning selection of MLP-MD generated configurations
     """
     if Config.n_cores > n_configs and Config.n_cores % n_configs != 0:
-        raise NotImplementedError(
-            'Active learning is only implemented using '
-            'an multiple of the number n_configs_iter. '
-            f'Please use n*{n_configs} cores.'
-        )
+        raise NotImplementedError('Active learning is only implemented using '
+                                  'an multiple of the number n_configs_iter. '
+                                  f'Please use n*{n_configs} cores.')
 
     n_processes = min(n_configs, Config.n_cores)
     n_cores_pp = max(Config.n_cores // n_configs, 1)
     logger.info(
         f'Iteration {kwargs["iteration"]}: Searching for "active" configurations with '
-        f'{n_processes} processes using {n_cores_pp} cores / process'
-    )
+        f'{n_processes} processes using {n_cores_pp} cores / process')
 
     if 'bias' in kwargs and kwargs['iteration'] < kwargs['bias_start_iter']:
         logger.info(
@@ -357,18 +351,15 @@ def _add_active_configs(
                     keep_output_files=kwargs['keep_output_files'],
                 )
 
-    if (
-        kwargs['inherit_metad_bias'] is True
-        and kwargs['iteration'] >= kwargs['bias_start_iter']
-    ):
+    if (kwargs['inherit_metad_bias'] is True
+            and kwargs['iteration'] >= kwargs['bias_start_iter']):
         _generate_inheritable_metad_bias(n_configs=n_configs, kwargs=kwargs)
 
     mlp.training_data += configs
 
     os.makedirs('datasets', exist_ok=True)
-    mlp.training_data.save(
-        f'datasets/' f'dataset_after_iter_{kwargs["iteration"]}.npz'
-    )
+    mlp.training_data.save(f'datasets/'
+                           f'dataset_after_iter_{kwargs["iteration"]}.npz')
 
     if kwargs.get('keep_al_trajs') is True:
         for traj_id in range(n_configs):
@@ -461,10 +452,8 @@ def _gen_active_config(
 
     md_time = 2 + n_calls**3 + float(extra_time)
 
-    if (
-        kwargs['inherit_metad_bias']
-        and kwargs['iteration'] >= kwargs['bias_start_iter']
-    ):
+    if (kwargs['inherit_metad_bias']
+            and kwargs['iteration'] >= kwargs['bias_start_iter']):
         kwargs = _modify_kwargs_for_metad_bias_inheritance(kwargs)
 
     if pbc:
@@ -499,7 +488,12 @@ def _gen_active_config(
     traj.t0 = curr_time  # Increment the initial time (t0)
 
     for frame in traj:
-        frame.box = Box([100, 100, 100])
+        if pbc:
+            frame.box = Box(box_size)
+        elif frame.box is None:
+            frame.box = Box([100, 100, 100])
+        # frame.box = Box([100, 100, 100])
+
     # Evaluate the selector on the final frame
     selector(
         traj.final_frame,
@@ -512,13 +506,11 @@ def _gen_active_config(
 
     if selector.select:
         if selector.check:
-            logger.info(
-                'Currently applying distance selector,'
-                'to avoid un-physical structures,'
-                'do backtracking in the trajectory to'
-                'find the first configuration in '
-                '{selector.n_backtrack} steps recognised as outlier'
-            )
+            logger.info('Currently applying distance selector,'
+                        'to avoid un-physical structures,'
+                        'do backtracking in the trajectory to'
+                        'find the first configuration in '
+                        f'{selector.n_backtrack} steps recognised as outlier')
 
             stride = max(1, len(traj) // selector.n_backtrack)
 
@@ -527,11 +519,9 @@ def _gen_active_config(
                 back_traj.append(i)
 
             for i, frame in enumerate(back_traj):
-                logger.info(
-                    f'Starting to check {i} th configuration'
-                    'to determine whether it is the first'
-                    'configurations selected by the distance selector'
-                )
+                logger.info(f'Starting to check {i} th configuration'
+                            'to determine whether it is the first'
+                            'configurations selected by the distance selector')
                 selector(
                     frame,
                     mlp,
@@ -555,7 +545,8 @@ def _gen_active_config(
                 method_name,
                 n_cores=n_cores,
                 keep_output_files=keep_output_files,
-                output_name=f'{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}',
+                output_name=
+                f'{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}',
             )
 
         if isinstance(selector, AbsDiffE):
@@ -565,16 +556,15 @@ def _gen_active_config(
                 suffix = 'out'
             shutil.move(
                 src=f'{method_name}_energy_selector_{kwargs["idx"]}.{suffix}',
-                dst=f'QM_outputs/{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}.{suffix}',
+                dst=
+                f'QM_outputs/{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}.{suffix}',
             )
 
         return frame
 
     if selector.too_large:
-        logger.warning(
-            'Backtracking in the trajectory to find a suitable '
-            f'configuration in {selector.n_backtrack} steps'
-        )
+        logger.warning('Backtracking in the trajectory to find a suitable '
+                       f'configuration in {selector.n_backtrack} steps')
         stride = max(1, len(traj) // selector.n_backtrack)
 
         for frame in reversed(traj[::stride]):
@@ -593,7 +583,8 @@ def _gen_active_config(
                         method_name,
                         n_cores=n_cores,
                         keep_output_files=keep_output_files,
-                        output_name=f'{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}',
+                        output_name=
+                        f'{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}',
                     )
 
                 # Move the QM outputs of frames selected by energy selector to the QM_outputs_folder
@@ -603,8 +594,10 @@ def _gen_active_config(
                     else:
                         suffix = 'out'
                     shutil.move(
-                        src=f'{method_name}_energy_selector_{kwargs["idx"]}.{suffix}',
-                        dst=f'QM_outputs/{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}.{suffix}',
+                        src=
+                        f'{method_name}_energy_selector_{kwargs["idx"]}.{suffix}',
+                        dst=
+                        f'QM_outputs/{method_name}_iter_{kwargs["iteration"]}_{kwargs["idx"]}.{suffix}',
                     )
                 logger.info('Structure selected after backpropagation.')
                 return frame
@@ -620,8 +613,7 @@ def _gen_active_config(
             suffix = 'out'
         try:
             os.remove(
-                f'{method_name}_energy_selector_{kwargs["idx"]}.{suffix}'
-            )
+                f'{method_name}_energy_selector_{kwargs["idx"]}.{suffix}')
         except FileNotFoundError:
             pass
 
@@ -658,14 +650,11 @@ def _set_init_training_configs(
 
     if len(init_configs) == 0:
         raise ValueError(
-            'Cannot set initial training configurations with a set of size 0'
-        )
+            'Cannot set initial training configurations with a set of size 0')
 
     if not all(cfg.energy.true is not None for cfg in init_configs):
-        logger.info(
-            f'Initialised with {len(init_configs)} configurations.'
-            f'Not all structures have defined reference.'
-        )
+        logger.info(f'Initialised with {len(init_configs)} configurations.'
+                    f'Not all structures have defined reference.')
 
         output_name = 'initial'
 
@@ -716,18 +705,15 @@ def _gen_and_set_init_training_configs(
                 continue
 
         p_acc = n_generated_configs / 10
-        logger.info(
-            f'Generated configurations with p={p_acc:.2f} with a '
-            f'minimum distance of {dist:.2f}'
-        )
+        logger.info(f'Generated configurations with p={p_acc:.2f} with a '
+                    f'minimum distance of {dist:.2f}')
 
     # Generate the initial configurations
     init_configs = ConfigurationSet()
     while len(init_configs) < num:
         try:
-            config = mlp.system.random_configuration(
-                min_dist=dist, with_intra=True
-            )
+            config = mlp.system.random_configuration(min_dist=dist,
+                                                     with_intra=True)
             config.box = Box([100, 100, 100])
             init_configs.append(config)
 
@@ -774,15 +760,13 @@ def _initialise_restart(
         if os.path.exists(hills_path):
             shutil.copyfile(src=hills_path, dst=f'HILLS_{restart_iter}.dat')
         else:
-            raise FileNotFoundError(
-                'Inherited bias generated after iteration '
-                f'{restart_iter} not found'
-            )
+            raise FileNotFoundError('Inherited bias generated after iteration '
+                                    f'{restart_iter} not found')
 
 
 def _attach_plumed_coords_to_init_configs(
-    init_configs: mlptrain.ConfigurationSet, bias: mlptrain.PlumedBias
-) -> None:
+        init_configs: mlptrain.ConfigurationSet,
+        bias: mlptrain.PlumedBias) -> None:
     """
     Attach PLUMED collective variable values to the configurations in the
     initial training set
@@ -797,12 +781,10 @@ def _attach_plumed_coords_to_init_configs(
     driver_setup = ['UNITS LENGTH=A']
     for cv in bias.cvs:
         driver_setup.extend(cv.setup)
-        driver_setup.append(
-            'PRINT '
-            f'ARG={cv.name} '
-            f'FILE=colvar_{cv.name}_driver.dat '
-            'STRIDE=1'
-        )
+        driver_setup.append('PRINT '
+                            f'ARG={cv.name} '
+                            f'FILE=colvar_{cv.name}_driver.dat '
+                            'STRIDE=1')
 
     # Remove duplicate lines
     driver_setup = list(dict.fromkeys(driver_setup))
@@ -810,18 +792,16 @@ def _attach_plumed_coords_to_init_configs(
     with open('driver_setup.dat', 'w') as f:
         f.writelines(f'{line}\n' for line in driver_setup)
 
-    driver_process = Popen(
-        [
-            'plumed',
-            'driver',
-            '--ixyz',
-            'init_configs_driver.xyz',
-            '--plumed',
-            'driver_setup.dat',
-            '--length-units',
-            'A',
-        ]
-    )
+    driver_process = Popen([
+        'plumed',
+        'driver',
+        '--ixyz',
+        'init_configs_driver.xyz',
+        '--plumed',
+        'driver_setup.dat',
+        '--length-units',
+        'A',
+    ])
     driver_process.wait()
 
     os.remove('init_configs_driver.xyz')
@@ -880,15 +860,10 @@ def _check_bias(
     requested parameters
     """
 
-    if (
-        isinstance(bias, PlumedBias)
-        and not bias.from_file
-        and bias.metadynamics
-        and bias.height == 0
-    ):
+    if (isinstance(bias, PlumedBias) and not bias.from_file
+            and bias.metadynamics and bias.height == 0):
         logger.info(
-            'Setting the height for metadynamics active learning to 5*k_B*T'
-        )
+            'Setting the height for metadynamics active learning to 5*k_B*T')
         bias.height = 5 * ase_units.kB * temp
 
     if inherit_metad_bias:
@@ -898,15 +873,12 @@ def _check_bias(
             )
 
         if bias.from_file:
-            raise ValueError(
-                'Metadynamics bias cannot be inherited using '
-                'PlumedBias from a file'
-            )
+            raise ValueError('Metadynamics bias cannot be inherited using '
+                             'PlumedBias from a file')
 
 
 def _remove_bias_potential(
-    bias: mlptrain.Bias | PlumedBias | None = None,
-) -> PlumedBias | None:
+    bias: mlptrain.Bias | PlumedBias | None = None, ) -> PlumedBias | None:
     """
     Remove bias potential from a bias, except LOWER_WALLS and UPPER_WALLS
     when the bias is PlumedBias
@@ -964,10 +936,8 @@ def _generate_inheritable_metad_bias(n_configs: int, kwargs: dict) -> None:
         )
 
     else:
-        logger.error(
-            'All files required for generating inheritable '
-            'metadynamics bias could not be found'
-        )
+        logger.error('All files required for generating inheritable '
+                     'metadynamics bias could not be found')
 
 
 def _generate_inheritable_metad_bias_hills(
@@ -1009,10 +979,8 @@ def _generate_inheritable_metad_bias_hills(
 
         with open(fname, 'w') as f:
             # No new gaussians deposited
-            if (
-                second_header_first_index == 0
-                and os.path.getsize(f'HILLS_{iteration}.dat') != 0
-            ):
+            if (second_header_first_index == 0
+                    and os.path.getsize(f'HILLS_{iteration}.dat') != 0):
                 pass
 
             else:
@@ -1073,9 +1041,8 @@ def _attach_inherited_bias_energies(
     learning iteration to the configurations
     """
 
-    logger.info(
-        'Attaching inherited bias energies to the whole training ' 'data set'
-    )
+    logger.info('Attaching inherited bias energies to the whole training '
+                'data set')
 
     if iteration == bias_start_iter:
         for config in configurations:
@@ -1089,19 +1056,18 @@ def _attach_inherited_bias_energies(
             return
 
         else:
-            _generate_grid_from_hills(
-                configurations=configurations, iteration=iteration, bias=bias
-            )
+            _generate_grid_from_hills(configurations=configurations,
+                                      iteration=iteration,
+                                      bias=bias)
 
         cvs_cols = range(bias.n_metad_cvs)
-        cvs_grid = np.loadtxt(
-            f'bias_grid_{iteration-1}.dat', usecols=cvs_cols, ndmin=2
-        )
+        cvs_grid = np.loadtxt(f'bias_grid_{iteration-1}.dat',
+                              usecols=cvs_cols,
+                              ndmin=2)
         cvs_grid = np.flip(cvs_grid, axis=1)
 
-        bias_grid = np.loadtxt(
-            f'bias_grid_{iteration-1}.dat', usecols=bias.n_metad_cvs
-        )
+        bias_grid = np.loadtxt(f'bias_grid_{iteration-1}.dat',
+                               usecols=bias.n_metad_cvs)
         bias_grid = -bias_grid
 
         header = []
@@ -1130,7 +1096,7 @@ def _attach_inherited_bias_energies(
                 end_idx = start_idxs[i] + block_width
 
                 idx = np.searchsorted(
-                    a=cvs_grid[start_idxs[i] : end_idx, i],
+                    a=cvs_grid[start_idxs[i]:end_idx, i],
                     v=config.plumed_coordinates[metad_cv_idxs[i]],
                     side='right',
                 )
@@ -1140,12 +1106,10 @@ def _attach_inherited_bias_energies(
                 block_width = int(block_width / n_bins[i])
 
                 if start_idx == end_idx:
-                    raise IndexError(
-                        f'CV {cv.name} value lies at the edge or '
-                        f'outside of the grid for at least one '
-                        f'of the configurations in the training '
-                        f'set.'
-                    )
+                    raise IndexError(f'CV {cv.name} value lies at the edge or '
+                                     f'outside of the grid for at least one '
+                                     f'of the configurations in the training '
+                                     f'set.')
 
             config.energy.inherited_bias = bias_grid[start_idxs[-1]]
 
@@ -1189,23 +1153,21 @@ def _generate_grid_from_hills(
     min_sequence = ','.join(str(param) for param in min_params)
     max_sequence = ','.join(str(param) for param in max_params)
 
-    sum_hills_process = Popen(
-        [
-            'plumed',
-            'sum_hills',
-            '--negbias',
-            '--hills',
-            f'HILLS_{iteration-1}.dat',
-            '--outfile',
-            f'bias_grid_{iteration-1}.dat',
-            '--bin',
-            bin_sequence,
-            '--min',
-            min_sequence,
-            '--max',
-            max_sequence,
-        ]
-    )
+    sum_hills_process = Popen([
+        'plumed',
+        'sum_hills',
+        '--negbias',
+        '--hills',
+        f'HILLS_{iteration-1}.dat',
+        '--outfile',
+        f'bias_grid_{iteration-1}.dat',
+        '--bin',
+        bin_sequence,
+        '--min',
+        min_sequence,
+        '--max',
+        max_sequence,
+    ])
     sum_hills_process.wait()
 
 

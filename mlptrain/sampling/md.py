@@ -146,16 +146,12 @@ def run_mlp_md(
 
         for file in restart_files:
             if not isinstance(file, str):
-                raise TypeError(
-                    'Restart files must be a list of strings '
-                    'specifying filenames'
-                )
+                raise TypeError('Restart files must be a list of strings '
+                                'specifying filenames')
 
         if not any(file.endswith('.traj') for file in restart_files):
-            raise ValueError(
-                'Restaring a simulation requires a .traj file '
-                'from the previous simulation'
-            )
+            raise ValueError('Restaring a simulation requires a .traj file '
+                             'from the previous simulation')
 
         copied_substrings_list.extend(restart_files)
         kept_substrings_list.extend(restart_files)
@@ -196,7 +192,7 @@ def run_mlp_md(
         minutes, seconds = divmod(remainder, 60)
 
         logger.info(
-            f'MLP MD simulation completed in {hours:02d} h {minutes:02d} min {seconds:02d} s.'
+            f'MLP MD simulation completed in {hours:02d} h {minutes:02d} min {seconds:05.2f} s.'
         )
 
     return traj
@@ -224,9 +220,8 @@ def _run_mlp_md(
 
     restart = restart_files is not None
 
-    n_cores = (
-        kwargs['n_cores'] if 'n_cores' in kwargs else min(Config.n_cores, 8)
-    )
+    n_cores = (kwargs['n_cores'] if 'n_cores' in kwargs else min(
+        Config.n_cores, 8))
 
     os.environ['OMP_NUM_THREADS'] = str(n_cores)
     logger.info(f'Using {n_cores} core(s) for MLP MD')
@@ -236,11 +231,9 @@ def _run_mlp_md(
     n_steps = _n_simulation_steps(dt=dt, kwargs=kwargs)
 
     if restart and n_steps % interval != 0:
-        raise NotImplementedError(
-            'Current implementation requires the number '
-            'of steps to be divisible by the interval '
-            'if the simulation is restarted'
-        )
+        raise NotImplementedError('Current implementation requires the number '
+                                  'of steps to be divisible by the interval '
+                                  'if the simulation is restarted')
 
     if mlp.requires_non_zero_box_size and configuration.box is None:
         logger.warning('Assuming vaccum simulation. Box size = 1000 nm^3')
@@ -310,9 +303,8 @@ def _run_mlp_md(
             bias_energy = biased_energy - energy
             bias_energies.append(bias_energy)
 
-    for i, (frame, energy, bias_energy) in enumerate(
-        zip(traj, energies, bias_energies)
-    ):
+    for i, (frame, energy,
+            bias_energy) in enumerate(zip(traj, energies, bias_energies)):
         frame.update_attr_from(configuration)
         frame.energy.predicted = energy
         frame.energy.bias = bias_energy
@@ -437,9 +429,8 @@ def _run_dynamics(
     return None
 
 
-def _save_trajectory(
-    ase_traj: ase.io.trajectory.TrajectoryWriter, traj_name: str, **kwargs
-) -> None:
+def _save_trajectory(ase_traj: ase.io.trajectory.TrajectoryWriter,
+                     traj_name: str, **kwargs) -> None:
     """
     Save the trajectory with a unique name based on the current simulation
     time
@@ -457,8 +448,7 @@ def _save_trajectory(
 
     if specified_key is None:
         raise ValueError(
-            'Could not determine time units for saving the trajectory'
-        )
+            'Could not determine time units for saving the trajectory')
 
     traj_basename = traj_name[:-5]
     time_units = specified_key.split('_')[-1]
@@ -468,9 +458,8 @@ def _save_trajectory(
     while os.path.exists(f'{traj_basename}_{time}{time_units}.traj'):
         time += saving_interval
 
-    shutil.copyfile(
-        src=traj_name, dst=f'{traj_basename}_{time}{time_units}.traj'
-    )
+    shutil.copyfile(src=traj_name,
+                    dst=f'{traj_basename}_{time}{time_units}.traj')
 
     return None
 
@@ -527,9 +516,8 @@ def _convert_ase_traj(
     return mlt_traj
 
 
-def _attach_plumed_coordinates(
-    mlt_traj: 'mlptrain.Trajectory', bias: 'mlptrain.PlumedBias', **kwargs
-) -> None:
+def _attach_plumed_coordinates(mlt_traj: 'mlptrain.Trajectory',
+                               bias: 'mlptrain.PlumedBias', **kwargs) -> None:
     """
     Attach PLUMED collective variable values to configurations in the
     trajectory if all colvar files have been printed
@@ -565,18 +553,17 @@ def _set_momenta_and_geometry(
         if temp > 0:
             logger.info(f'Initialising initial velocities for {temp} K')
 
-            MaxwellBoltzmannDistribution(
-                ase_atoms, temperature_K=temp, rng=RandomState()
-            )
+            MaxwellBoltzmannDistribution(ase_atoms,
+                                         temperature_K=temp,
+                                         rng=RandomState())
         else:
             # Set the momenta to zero
             ase_atoms.arrays['momenta'] = np.zeros((len(ase_atoms), 3))
 
         def add_momenta(idx, vector, energy):
             masses = ase_atoms.get_masses()
-            ase_atoms.arrays['momenta'][idx] = (
-                np.sqrt(masses[idx] * energy) * vector
-            )
+            ase_atoms.arrays['momenta'][idx] = (np.sqrt(masses[idx] * energy) *
+                                                vector)
             return None
 
         coords = ase_atoms.positions
@@ -611,17 +598,15 @@ def _set_momenta_and_geometry(
                 add_momenta(idx=j, vector=-vec, energy=energy)
 
     else:
-        logger.info(
-            'Initialising starting geometry and momenta from the '
-            'last configuration'
-        )
+        logger.info('Initialising starting geometry and momenta from the '
+                    'last configuration')
 
         last_configuration = ase.io.read(traj_name)
 
         # Make sure we've only read a single structure, not multiple of them!
         assert isinstance(
-            last_configuration, ase.Atoms
-        ), 'more than one configuration in file {traj_name}!'
+            last_configuration,
+            ase.Atoms), 'more than one configuration in file {traj_name}!'
 
         ase_atoms.set_positions(last_configuration.get_positions())
         ase_atoms.set_momenta(last_configuration.get_momenta())
@@ -710,9 +695,8 @@ def _traj_saving_interval(dt: float, kwargs: dict) -> int:
     return saving_interval
 
 
-def _remove_colvar_duplicate_frames(
-    bias: 'mlptrain.PlumedBias', **kwargs
-) -> None:
+def _remove_colvar_duplicate_frames(bias: 'mlptrain.PlumedBias',
+                                    **kwargs) -> None:
     """
     Remove duplicate frames from generated colvar files when using PLUMED
     bias
