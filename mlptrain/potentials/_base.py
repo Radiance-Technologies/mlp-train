@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 
 class MLPotential(ABC):
+
     def __init__(self, name: str, system: 'mlt.System'):
         """
         Machine learnt potential. Name defines the name of the potential
@@ -34,9 +35,8 @@ class MLPotential(ABC):
         self._training_data = mlt.ConfigurationSet()
         self.atomic_energies = {}
 
-    def train(
-        self, configurations: Optional['mlt.ConfigurationSet'] = None
-    ) -> None:
+    def train(self,
+              configurations: Optional['mlt.ConfigurationSet'] = None) -> None:
         """
         Train this potential on a set of configurations
 
@@ -52,23 +52,18 @@ class MLPotential(ABC):
             self._training_data = configurations
 
         if len(self.training_data) == 0:
-            raise RuntimeError(
-                f'Failed to train {self.__class__.__name__}'
-                f'({self.name}) had no training configurations'
-            )
+            raise RuntimeError(f'Failed to train {self.__class__.__name__}'
+                               f'({self.name}) had no training configurations')
 
         if any(c.energy.true is None for c in self.training_data):
-            raise RuntimeError(
-                'Cannot train on configurations, an ' 'energy was undefined'
-            )
+            raise RuntimeError('Cannot train on configurations, an '
+                               'energy was undefined')
 
         if self.requires_atomic_energies and len(self.atomic_energies) == 0:
-            raise RuntimeError(
-                f'Cannot train {self.__class__.__name__}'
-                f'({self.name}) required atomic energies that '
-                f'are not set. Set e.g. mlp.atomic_energies '
-                '= {"H": -13.}'
-            )
+            raise RuntimeError(f'Cannot train {self.__class__.__name__}'
+                               f'({self.name}) required atomic energies that '
+                               f'are not set. Set e.g. mlp.atomic_energies '
+                               '= {"H": -13.}')
         logger.info(f'Training on nodename: {os.uname().nodename}')
         self._train()
         return None
@@ -110,14 +105,11 @@ class MLPotential(ABC):
                 all_configurations.append(arg)
 
             else:
-                raise ValueError(
-                    'Cannot predict the energy and forces on ' f'{type(arg)}'
-                )
+                raise ValueError('Cannot predict the energy and forces on '
+                                 f'{type(arg)}')
 
-        logger.info(
-            f'Evaluating MLP energies over {len(all_configurations)} '
-            f'configurations'
-        )
+        logger.info(f'Evaluating MLP energies over {len(all_configurations)} '
+                    f'configurations')
 
         calculator = self.ase_calculator
         logger.info('Loaded calculator successfully')
@@ -152,10 +144,8 @@ class MLPotential(ABC):
             self._training_data = value
 
         else:
-            raise ValueError(
-                f'Cannot set the training data for {self.name} '
-                f'with {value}'
-            )
+            raise ValueError(f'Cannot set the training data for {self.name} '
+                             f'with {value}')
 
     @property
     def n_train(self) -> int:
@@ -184,8 +174,7 @@ class MLPotential(ABC):
 
         for file_extension in ('npz', 'xyz'):
             self.training_data.save(
-                filename=f'{self.name}_al.{file_extension}'
-            )
+                filename=f'{self.name}_al.{file_extension}')
 
         return None
 
@@ -245,9 +234,8 @@ class MLPotential(ABC):
         _max = np.max(coords) if max_coordinate is None else max_coordinate
         _min = np.min(coords) if min_coordinate is None else min_coordinate
 
-        hist, bin_edges = np.histogram(
-            coords, bins=np.linspace(_min, _max, 10)
-        )
+        hist, bin_edges = np.histogram(coords,
+                                       bins=np.linspace(_min, _max, 10))
         bin_centres = bin_edges[:-1] + np.diff(bin_edges) / 2
 
         for idx, freq in enumerate(hist):
@@ -259,15 +247,12 @@ class MLPotential(ABC):
 
             target_coord = bin_centres[idx]
 
-            logger.info(
-                'Have a minimum in the histogram of coordinates at '
-                f'x = {target_coord:.2f}. Adding a harmonic bias and '
-                f'running additional AL'
-            )
+            logger.info('Have a minimum in the histogram of coordinates at '
+                        f'x = {target_coord:.2f}. Adding a harmonic bias and '
+                        f'running additional AL')
 
             kwargs['init_configs'] = self._best_bias_init_frame(
-                target_coord, coords
-            )
+                target_coord, coords)
             self.al_train(
                 method_name=method_name,
                 bias=mlt.Bias(
@@ -281,8 +266,8 @@ class MLPotential(ABC):
         return None
 
     def _best_bias_init_frame(
-        self, value: float, values: np.ndarray
-    ) -> 'mlt.configurations.ConfigurationSet':
+            self, value: float,
+            values: np.ndarray) -> 'mlt.configurations.ConfigurationSet':
         """
         Get the closest single frame as a configuration set to start a biased
         AL loop, where the closest distance from the value to any one of the
@@ -324,9 +309,8 @@ class MLPotential(ABC):
                     config.energy.true = -13.6056995  # -0.5 Ha
 
                 else:
-                    raise RuntimeError(
-                        'Failed to calculate an energy for ' f'{symbol}'
-                    )
+                    raise RuntimeError('Failed to calculate an energy for '
+                                       f'{symbol}')
 
             self.atomic_energies[symbol] = config.energy.true
 
@@ -374,4 +358,5 @@ _spin_multiplicites = {
     'Pd': 1,
     'I': 2,
     'Pt': 1,
+    'Si': 3,
 }

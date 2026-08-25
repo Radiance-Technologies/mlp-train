@@ -38,6 +38,7 @@ class Configuration(AtomCollection):
         charge: int = 0,
         mult: int = 1,
         box: Optional[Box] = None,
+        constraints: Optional[list] = None,
     ):
         """
         Set of atoms perhaps in a periodic box with an overall charge and
@@ -54,6 +55,7 @@ class Configuration(AtomCollection):
             charge:
             mult:
             box: Optional box, if None
+            constraints: Optional list, if None
             mol_dict: Dict[int] = None
 
         """
@@ -62,6 +64,7 @@ class Configuration(AtomCollection):
         self.charge = charge
         self.mult = mult
         self.box = box
+        self.constraints = constraints
 
         self.energy = Energy()
         self.forces = Forces()
@@ -76,9 +79,10 @@ class Configuration(AtomCollection):
         self.n_ref_evals = 0  # Number of reference evaluations
 
     @classmethod
-    def from_xyz(
-        cls, filename: str, charge: int = 0, mult: int = 1
-    ) -> 'Configuration':
+    def from_xyz(cls,
+                 filename: str,
+                 charge: int = 0,
+                 mult: int = 1) -> 'Configuration':
         """
         Create a Configuration from an xyz file and automatically load mol_dict if available.
 
@@ -91,10 +95,14 @@ class Configuration(AtomCollection):
             Configuration: New configuration with mol_dict loaded if available
         """
         # Use static method to load data
-        atoms, box, mol_dict = cls._load_from_xyz(filename)
+        atoms, box, constraints, mol_dict = cls._load_from_xyz(filename)
 
         # Create new configuration with loaded data
-        config = cls(atoms=atoms, charge=charge, mult=mult, box=box)
+        config = cls(atoms=atoms,
+                     charge=charge,
+                     mult=mult,
+                     box=box,
+                     constraints=constraints)
         if mol_dict:
             config.mol_dict = mol_dict
 
@@ -129,8 +137,7 @@ class Configuration(AtomCollection):
         # Look at how cclib does it.
         if not any('ORCA TERMINATED NORMALLY' in line for line in lines):
             raise RuntimeError(
-                f'ORCA did not terminate normally in file {file_path}.'
-            )
+                f'ORCA did not terminate normally in file {file_path}.')
 
         charge = None
         mult = None
@@ -138,9 +145,8 @@ class Configuration(AtomCollection):
             if 'Total Charge' in cline:
                 charge = int(cline.split()[4])
 
-        assert (
-            charge is not None
-        ), f'Could not determine charge from output file {file_path}'
+        assert (charge is not None
+                ), f'Could not determine charge from output file {file_path}'
 
         for line in lines:
             if 'Multiplicity' in line:
@@ -159,11 +165,8 @@ class Configuration(AtomCollection):
             elif line in ['\n', '\r\n']:
                 read_coord = False
 
-            if (
-                read_coord
-                and '----' not in line
-                and 'CARTESIAN COORDINATES (ANGSTROEM)' not in line
-            ):
+            if (read_coord and '----' not in line
+                    and 'CARTESIAN COORDINATES (ANGSTROEM)' not in line):
                 element, x, y, z = line.split()
                 atom = ade.atoms.Atom(
                     atomic_symbol=element,
@@ -186,14 +189,10 @@ class Configuration(AtomCollection):
                     energy = PotentialEnergy(en_line.split()[4], units='Ha')
 
         if load_forces:
-            if not any(
-                ('CARTESIAN GRADIENT' in line)
-                or ('The final MP2 gradient' in line)
-                for line in lines
-            ):
+            if not any(('CARTESIAN GRADIENT' in line) or
+                       ('The final MP2 gradient' in line) for line in lines):
                 raise ValueError(
-                    f'Gradients not found in output file {file_path}'
-                )
+                    f'Gradients not found in output file {file_path}')
 
             gradient_start = [
                 'CARTESIAN GRADIENT',
@@ -222,8 +221,9 @@ class Configuration(AtomCollection):
                         dadx, dady, dadz = line.split()[-3:]
 
                         gradients.append(
-                            [float(dadx), float(dady), float(dadz)]
-                        )
+                            [float(dadx),
+                             float(dady),
+                             float(dadz)])
 
             assert (
                 len(gradients) == num_atoms
@@ -341,8 +341,7 @@ class Configuration(AtomCollection):
         if None not in (solvent_density, solvent_molecule, solvent_name):
             raise ValueError(
                 'Either the solvent name or the combination of solvent molecule and density must be provided.'
-                'You should not provide all three.'
-            )
+                'You should not provide all three.')
 
         # If both solvent molecule and density are provided, stop checking
         elif solvent_molecule is not None and solvent_density is not None:
@@ -350,8 +349,7 @@ class Configuration(AtomCollection):
                 raise ValueError('The solvent molecule must contain atoms')
             if solvent_density <= 0:
                 raise ValueError(
-                    'The density of the solvent must be greater than 0'
-                )
+                    'The density of the solvent must be greater than 0')
 
         # If the solvent name is provided, get the solvent molecule and density from the solvent database
         # by getting the smiles from autode's solvent database, creating a molecule object and optimising it
@@ -363,13 +361,11 @@ class Configuration(AtomCollection):
             solvent = get_solvent(solvent_name, kind='implicit')
             if solvent is None:
                 raise ValueError(
-                    f'Could not find solvent {solvent_name} in the database!'
-                )
+                    f'Could not find solvent {solvent_name} in the database!')
 
             solvent_smiles = solvent.smiles
-            solvent_molecule = ade.Molecule(
-                smiles=solvent_smiles, name=solvent_name
-            )
+            solvent_molecule = ade.Molecule(smiles=solvent_smiles,
+                                            name=solvent_name)
             solvent_molecule = optimise_solvent(solvent_molecule)
 
             if solvent.name not in solvent_densities.keys():
@@ -414,11 +410,9 @@ class Configuration(AtomCollection):
         # Number of solvent molecules that would fit into the box without the solute
         solvent_number = int(np.round((box_size**3) / single_sol_volume, 0))
 
-        logger.info(
-            f'Attempting to add {solvent_number} solvent molecules'
-            f'with the formula {solvent_molecule.formula} to a cubic'
-            f'box with a side length of {box_size:.2f} Å'
-        )
+        logger.info(f'Attempting to add {solvent_number} solvent molecules'
+                    f'with the formula {solvent_molecule.formula} to a cubic'
+                    f'box with a side length of {box_size:.2f} Å')
 
         self.k_d_tree_insertion(
             solvent_molecule,
@@ -470,23 +464,22 @@ class Configuration(AtomCollection):
         system_coords = np.array([atom.coordinate for atom in self.atoms])
         # Get the coordinates of the single isolated solvent molecule
         solvent_coords = np.array(
-            [atom.coordinate for atom in solvent_molecule.atoms]
-        )
+            [atom.coordinate for atom in solvent_molecule.atoms])
 
         # Initialize mol_dict with the original solute molecule
         if not self.mol_dict:
-            self.mol_dict['solute'] = [
-                {
-                    'start': 0,
-                    'end': len(system_coords),
-                    'formula': self._get_formula_from_atoms(self.atoms),
-                }
-            ]
+            self.mol_dict['solute'] = [{
+                'start':
+                0,
+                'end':
+                len(system_coords),
+                'formula':
+                self._get_formula_from_atoms(self.atoms),
+            }]
 
         # Get solvent name for mol_dict (use formula as fallback)
-        solvent_name = getattr(
-            solvent_molecule, 'name', solvent_molecule.formula
-        )
+        solvent_name = getattr(solvent_molecule, 'name',
+                               solvent_molecule.formula)
         if solvent_name not in self.mol_dict:
             self.mol_dict[solvent_name] = []
 
@@ -498,9 +491,8 @@ class Configuration(AtomCollection):
 
         for i in range(n_solvent):
             # Create periodic images for boundary condition handling
-            periodic_coords = _create_periodic_images(
-                system_coords, box_size, contact_threshold
-            )
+            periodic_coords = _create_periodic_images(system_coords, box_size,
+                                                      contact_threshold)
 
             # Build a k-d tree from the system coordinates including periodic images
             existing_tree = _build_cKDTree(periodic_coords)
@@ -530,14 +522,10 @@ class Configuration(AtomCollection):
 
                 # Translate the rotated solvent molecule and check if it is within the box
                 trial_coords = rot_solvent + translation
-                if not np.all(
-                    (
-                        [
-                            np.all(coord < box_size) and np.all(coord > 0)
-                            for coord in trial_coords
-                        ]
-                    )
-                ):
+                if not np.all(([
+                        np.all(coord < box_size) and np.all(coord > 0)
+                        for coord in trial_coords
+                ])):
                     continue
 
                 # Query the nearest neighbours of the trial coordinates and check if they are within the contact_threshold
@@ -555,25 +543,24 @@ class Configuration(AtomCollection):
 
                     self.atoms.extend(solvent_translated.atoms)
                     system_coords = np.concatenate(
-                        (system_coords, trial_coords)
-                    )
+                        (system_coords, trial_coords))
 
                     # Add molecule info to mol_dict
                     end_index = len(self.atoms)
-                    self.mol_dict[solvent_name].append(
-                        {
-                            'start': start_index,
-                            'end': end_index,
-                            'formula': solvent_molecule.formula,
-                        }
-                    )
+                    self.mol_dict[solvent_name].append({
+                        'start':
+                        start_index,
+                        'end':
+                        end_index,
+                        'formula':
+                        solvent_molecule.formula,
+                    })
 
                     inserted = True
                     solvents_inserted += 1
 
         logger.info(
-            f'Inserted {solvents_inserted} solvent molecules into the box'
-        )
+            f'Inserted {solvents_inserted} solvent molecules into the box')
 
         return system_coords
 
@@ -620,10 +607,8 @@ class Configuration(AtomCollection):
         a, b, c = [0.0, 0.0, 0.0] if self.box is None else self.box.size
 
         if true and predicted:
-            raise ValueError(
-                'Cannot save both predicted and true '
-                f'quantities to {filename}'
-            )
+            raise ValueError('Cannot save both predicted and true '
+                             f'quantities to {filename}')
 
         assert self.atoms is not None
 
@@ -755,7 +740,8 @@ class Configuration(AtomCollection):
                     method_name = method.lower()
                     shutil.move(
                         src=f'tmp_{method_name}{kept_substrings_list[0]}',
-                        dst=f'QM_outputs/{method_name}{kept_substrings_list[0]}',
+                        dst=
+                        f'QM_outputs/{method_name}{kept_substrings_list[0]}',
                     )
                 elif 'energy' in output_name:
                     pass
@@ -772,21 +758,16 @@ class Configuration(AtomCollection):
             method.predict(self)  # ty:ignore[call-non-callable]
 
         else:
-            raise ValueError(
-                f'Cannot use {method} to predict energies and ' f'forces'
-            )
+            raise ValueError(f'Cannot use {method} to predict energies and '
+                             f'forces')
 
         return None
 
     def __eq__(self, other) -> bool:
         """Another configuration is identical to this one"""
-        eq = (
-            isinstance(other, Configuration)
-            and other.n_atoms == self.n_atoms
-            and other.mult == self.mult
-            and other.charge == self.charge
-            and other.box == self.box
-        )
+        eq = (isinstance(other, Configuration)
+              and other.n_atoms == self.n_atoms and other.mult == self.mult
+              and other.charge == self.charge and other.box == self.box)
 
         if eq and self.n_atoms > 0:
             rmsd = np.linalg.norm(self.coordinates - other.coordinates)
@@ -846,12 +827,13 @@ class Configuration(AtomCollection):
                 return mol_dict
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(
-                    f'Failed to load mol_dict from {mol_dict_file}: {e}'
-                )
+                    f'Failed to load mol_dict from {mol_dict_file}: {e}')
         return None
 
     @staticmethod
-    def _load_from_xyz(filename: str) -> tuple[list, Box | None, dict | None]:
+    def _load_from_xyz(
+            filename: str
+    ) -> tuple[list, Box | None, list | None, dict | None]:
         """
         Load atoms, box, and mol_dict from an xyz file.
 
@@ -862,6 +844,7 @@ class Configuration(AtomCollection):
             tuple: (atoms, box, mol_dict) where box and mol_dict can be None
         """
         import ase.io
+        from ase.constraints import FixAtoms
         from autode.atoms import Atom
         from mlptrain.box import Box
 
@@ -870,15 +853,14 @@ class Configuration(AtomCollection):
         # Check that we've read a single structure and not more!
         if isinstance(ase_atoms, list):
             raise ValueError(
-                f'Read more than one structure from file {filename}'
-            )
+                f'Read more than one structure from file {filename}')
 
         logger.info(
-            f'Successfully loaded {len(ase_atoms)} atoms from {filename}'
-        )
+            f'Successfully loaded {len(ase_atoms)} atoms from {filename}')
 
         atoms: list[Atom] = []
         box = None
+        constraints = None
         mol_dict = None
 
         if len(ase_atoms) == 0:
@@ -887,6 +869,11 @@ class Configuration(AtomCollection):
         # Convert to autode atoms
         symbols = ase_atoms.get_chemical_symbols()
         positions = ase_atoms.get_positions()
+        mask = ase_atoms.arrays.get('mace_mask')
+
+        if mask is not None:
+            fixed = np.flatnonzero(np.asarray(mask) == 0)
+            constraints = [FixAtoms(indices=fixed)] if fixed.size > 0 else None
 
         logger.info(f'Converting {len(symbols)} atoms to autode format')
 
@@ -909,7 +896,7 @@ class Configuration(AtomCollection):
         # Load mol_dict if available
         mol_dict = Configuration._load_mol_dict_from_file(filename)
 
-        return atoms, box, mol_dict
+        return atoms, box, constraints, mol_dict
 
     def load_from_xyz(self, filename: str) -> None:
         """
@@ -918,12 +905,14 @@ class Configuration(AtomCollection):
         Arguments:
             filename: Path to xyz file
         """
-        atoms, box, mol_dict = self._load_from_xyz(filename)
+        atoms, box, constraints, mol_dict = self._load_from_xyz(filename)
 
         # Update this configuration
         self.atoms = atoms
         if box is not None:
             self.box = box
+        if constraints is not None:
+            self.constraints = constraints
         if mol_dict is not None:
             self.mol_dict = mol_dict
         else:
@@ -970,33 +959,27 @@ def _random_rotation(r1: float, r2: float, r3: float) -> np.ndarray:
     rot_matrix = np.eye(3)
     rot_matrix = np.dot(
         rot_matrix,
-        np.array(
-            [
-                [1, 0, 0],
-                [0, np.cos(theta), -np.sin(theta)],
-                [0, np.sin(theta), np.cos(theta)],
-            ]
-        ),
+        np.array([
+            [1, 0, 0],
+            [0, np.cos(theta), -np.sin(theta)],
+            [0, np.sin(theta), np.cos(theta)],
+        ]),
     )
     rot_matrix = np.dot(
         rot_matrix,
-        np.array(
-            [
-                [np.cos(kappa), 0, np.sin(kappa)],
-                [0, 1, 0],
-                [-np.sin(kappa), 0, np.cos(kappa)],
-            ]
-        ),
+        np.array([
+            [np.cos(kappa), 0, np.sin(kappa)],
+            [0, 1, 0],
+            [-np.sin(kappa), 0, np.cos(kappa)],
+        ]),
     )
     rot_matrix = np.dot(
         rot_matrix,
-        np.array(
-            [
-                [np.cos(gamma), -np.sin(gamma), 0],
-                [np.sin(gamma), np.cos(gamma), 0],
-                [0, 0, 1],
-            ]
-        ),
+        np.array([
+            [np.cos(gamma), -np.sin(gamma), 0],
+            [np.sin(gamma), np.cos(gamma), 0],
+            [0, 0, 1],
+        ]),
     )
 
     return rot_matrix
@@ -1019,13 +1002,10 @@ def _build_cKDTree(coords: np.ndarray) -> cKDTree:
 
 
 def _get_max_mol_distance(conf_atoms: List[Atom]) -> float:
-    return max(
-        [
-            dist(atom1.coordinate, atom2.coordinate)
-            for atom1 in conf_atoms
-            for atom2 in conf_atoms
-        ]
-    )
+    return max([
+        dist(atom1.coordinate, atom2.coordinate) for atom1 in conf_atoms
+        for atom2 in conf_atoms
+    ])
 
 
 @work_in_tmp_dir()
@@ -1036,9 +1016,8 @@ def optimise_solvent(solvent: ade.Molecule) -> ade.Molecule:
     return solvent_copy
 
 
-def _create_periodic_images(
-    coords: np.ndarray, box_size: float, contact_threshold: float
-) -> np.ndarray:
+def _create_periodic_images(coords: np.ndarray, box_size: float,
+                            contact_threshold: float) -> np.ndarray:
     """
     Create periodic images of atoms that are within contact_threshold distance
     of the box boundaries to handle periodic boundary conditions.

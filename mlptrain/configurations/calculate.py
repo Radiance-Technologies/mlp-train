@@ -50,9 +50,7 @@ def run_autode(
     try:
         configuration.forces.true = (
             -calc.molecule.gradient.to(  # ty: ignore[unresolved-attribute]
-                'eV Å^-1'
-            )
-        )
+                'eV Å^-1'))
 
     except CouldNotGetProperty:
         logger.error('Failed to set forces')
@@ -67,16 +65,14 @@ def run_autode(
 
     configuration.energy.true = energy.to('eV')
     configuration.partial_charges = (  # ty: ignore[unresolved-attribute]
-        calc.molecule.partial_charges
-    )
+        calc.molecule.partial_charges)
     return None
 
 
 def _method_and_keywords(
     method_name: str,
-) -> tuple[
-    'autode.wrappers.methods.Method', 'autode.wrappers.keywords.Keywords'
-]:
+) -> tuple['autode.wrappers.methods.Method',
+           'autode.wrappers.keywords.Keywords']:
     """Get the method and associated keywords to use in a QM calculation"""
     from autode.methods import ORCA, XTB, G16, G09
 
@@ -89,7 +85,10 @@ def _method_and_keywords(
 
     elif method_name == 'xtb':
         method = XTB()
-        kwds = method.keywords.grad
+        if Config._xtb_keywords is not None:
+            kwds = Config.xtb_keywords
+        else:
+            kwds = method.keywords.grad
 
     else:
         raise ValueError(f'Unknown method {method_name}')
@@ -101,11 +100,9 @@ def _orca_keywords() -> 'autode.wrappers.keywords.Keywords':
     """Keywords e.g. functional and basis set to use for an ORCA calculation"""
 
     if len(Config.orca_keywords) == 0:
-        raise ValueError(
-            'For ORCA training GTConfig.orca_keywords must be'
-            ' set. e.g.\nmlt.Config.orca_keywords '
-            "= ['PBE', 'def2-SVP', 'EnGrad'])"
-        )
+        raise ValueError('For ORCA training GTConfig.orca_keywords must be'
+                         ' set. e.g.\nmlt.Config.orca_keywords '
+                         "= ['PBE', 'def2-SVP', 'EnGrad'])")
 
     return Config.orca_keywords
 
@@ -115,9 +112,7 @@ def _gaussian_keywords() -> 'autode.wrappers.keywords.Keywords':
     calculation, either Gaussian09 or Gaussian16"""
 
     if len(Config.gaussian_keywords) == 0:
-        raise ValueError(
-            'To train with Gaussian QM calculations '
-            'mlt.Config.gaussian_keywords must be set.'
-        )
+        raise ValueError('To train with Gaussian QM calculations '
+                         'mlt.Config.gaussian_keywords must be set.')
 
     return Config.gaussian_keywords

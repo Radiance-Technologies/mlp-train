@@ -40,6 +40,7 @@ class _ConfigClass:
     n_cores = 4 if _NUM_CPUS >= 4 else _NUM_CPUS
     _orca_keywords = None
     _gaussian_keywords = None
+    _xtb_keywords = None
 
     # ACE params
     ace_params = {
@@ -107,6 +108,15 @@ class _ConfigClass:
     def gaussian_keywords(self, value):
         """Gaussian keywords must be gradient"""
         self._gaussian_keywords = value
+
+    @property
+    def xtb_keywords(self):
+        return GradientKeywords(self._xtb_keywords)
+
+    @xtb_keywords.setter
+    def xtb_keywords(self, value):
+        """XTB keywords must be gradient"""
+        self._xtb_keywords = value
 
 
 # Singleton instance of the configuration
