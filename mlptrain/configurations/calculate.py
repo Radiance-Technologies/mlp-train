@@ -84,11 +84,7 @@ def _method_and_keywords(
         kwds = _gaussian_keywords()
 
     elif method_name == 'xtb':
-        method = XTB()
-        if Config._xtb_keywords is not None:
-            kwds = Config.xtb_keywords
-        else:
-            kwds = method.keywords.grad
+        method, kwds = XTB(), _xtb_keywords()
 
     else:
         raise ValueError(f'Unknown method {method_name}')
@@ -116,3 +112,13 @@ def _gaussian_keywords() -> 'autode.wrappers.keywords.Keywords':
                          'mlt.Config.gaussian_keywords must be set.')
 
     return Config.gaussian_keywords
+
+
+def _xtb_keywords() -> 'autode.wrappers.keywords.Keywords':
+    """Keywords e.g. functional and basis set to use for an xtb calculation"""
+
+    if len(Config.xtb_keywords) == 0:
+        raise ValueError('To train with xtb QM calculations '
+                         'mlt.Config.xtb_keywords must be set.')
+
+    return Config.xtb_keywords

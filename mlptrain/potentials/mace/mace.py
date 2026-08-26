@@ -15,12 +15,12 @@ from mlptrain.log import logger
 import autode as ade
 from typing import TYPE_CHECKING, Optional
 
-
 if TYPE_CHECKING:
     from ase.calculators.calculator import Calculator as ASECalculator
 
 
 class MACE(MLPotential):
+
     def __init__(
         self,
         name: str,
@@ -50,6 +50,7 @@ class MACE(MLPotential):
         super().__init__(name=name, system=system)
 
         import mace
+        from importlib.metadata import version
 
         # Filter out FutureWarning from e3nn: You are using `torch.load` with `weights_only=False`...
         with warnings.catch_warnings():
@@ -57,9 +58,9 @@ class MACE(MLPotential):
             import mace.tools
 
         self.foundation = foundation
-        logger.info(f'MACE version: {mace.__version__}')
+        logger.info(f'MACE version: {version("mace-torch")}')
 
-        mace.tools.set_seeds(345)
+        mace.tools.set_seeds(Config.mace_params['seed'])
         mace.tools.set_default_dtype(str(Config.mace_params['dtype']))
 
     @property
@@ -92,15 +93,13 @@ class MACE(MLPotential):
         valid_fraction = Config.mace_params['valid_fraction']
         if not isinstance(valid_fraction, float):
             raise ValueError(
-                f"Invalid parameter valid_fraction '{valid_fraction}'"
-            )
+                f"Invalid parameter valid_fraction '{valid_fraction}'")
 
         _min_dataset = -(1 // -valid_fraction)
 
         if self.n_train == 1:
             raise ValueError(
-                'MACE training requires at least 2 configurations'
-            )
+                'MACE training requires at least 2 configurations')
         elif self.n_train >= _min_dataset:
             return valid_fraction
         else:
@@ -122,125 +121,81 @@ class MACE(MLPotential):
 
     @property
     def args(self) -> 'argparse.Namespace':
-        """Namespace containing mostly default MACE parameters"""
+        """Namespace containing default and custom MACE parameters"""
         import mace.tools
+        import json
 
-        args_list = [
-            '--name',
-            self.name,
-            '--max_L',
-            str(Config.mace_params['max_L']),
-            '--train_file',
-            f'{self.name}_data.xyz',
-            '--energy_weight',
-            str(Config.mace_params['energy_weight']),
-            '--forces_weight',
-            str(Config.mace_params['forces_weight']),
-            '--config_type_weights',
-            str(Config.mace_params['config_type_weights']),
-            '--E0s',
-            str(self.get_E0s),
-            '--model',
-            str(Config.mace_params['model']),
-            '--hidden_irreps',
-            str(Config.mace_params['hidden_irreps']),
-            '--r_max',
-            str(Config.mace_params['r_max']),
-            '--lr',
-            str(Config.mace_params['lr']),
-            '--scaling',
-            'rms_forces_scaling',
-            '--batch_size',
-            str(self.batch_size),
-            '--valid_batch_size',
-            str(self.batch_size),
-            '--max_num_epochs',
-            str(Config.mace_params['max_num_epochs']),
-            '--error_table',
-            str(Config.mace_params['error_table']),
-            '--loss',
-            str(Config.mace_params['loss']),
-            '--correlation',
-            str(Config.mace_params['correlation']),
-            '--scheduler_patience',
-            str(Config.mace_params['scheduler_patience']),
-            '--patience',
-            str(Config.mace_params['patience']),
-            '--device',
-            str(Config.mace_params['device']),
-            '--default_dtype',
-            str(Config.mace_params['dtype']),
-            '--seed',
-            str(Config.mace_params['seed']),
-            '--energy_key',
-            'energy',
-            '--forces_key',
-            'forces',
-            '--num_workers',
-            str(Config.mace_params['num_workers']),
-        ]
+        cli_dict = {
+            'name': self.name,
+            'train_file': f'{self.name}_data.xyz',
+            'scaling': 'rms_forces_scaling',
+            'batch_size': self.batch_size,
+            'valid_batch_size': self.batch_size,
+            'energy_key': 'energy',
+            'forces_key': 'forces',
+            'default_dtype': str(Config.mace_params['dtype']),
+            'enable_cueq': str(Config.mace_params['cueq']),
+            'E0s': self.get_E0s,
+        }
 
-        if Config.mace_params['ema']:
-            args_list.append('--ema')
-            args_list.append('--ema_decay')
-            args_list.append(str(Config.mace_params['ema_decay']))
-
-        if Config.mace_params['swa']:
-            args_list.append('--swa')
-            if Config.mace_params['start_swa'] is not None:
-                args_list.append('--start_swa')
-                args_list.append(str(Config.mace_params['start_swa']))
-
-        if self.foundation is not None:
-            args_list.append('--foundation_model')
-            args_list.append(f'{self.foundation}')
-            pt_train = Config.mace_params['pt_train']
+        if getattr(self, 'foundation', None) is not None:
+            cli_dict['foundation_model'] = str(self.foundation)
+            pt_train = Config.mace_params.get('pt_train')
 
             if pt_train is not None:
                 if not isinstance(pt_train, str) or not pt_train.strip():
                     raise ValueError(
-                        'pt_train must be a non-empty path string.'
-                    )
+                        'pt_train must be a non-empty path string.')
                 if pt_train != 'mp' and not os.path.exists(pt_train):
                     raise FileNotFoundError(
-                        f'pt_train path does not exist: {pt_train}'
-                    )
+                        f'pt_train path does not exist: {pt_train}')
 
-                args_list.append(f'--pt_train_file={pt_train}')
-                args_list.append('--multihead=True')
+                cli_dict['pt_train_file'] = pt_train
+                cli_dict['multiheads_finetuning'] = True
                 logger.info('Multihead fine-tuning launched')
 
             else:
-                args_list.append('--multihead=False')
+                cli_dict['multiheads_finetuning'] = False
                 logger.info(
-                    'Naive fine-tuning launched since no pt_train provided.'
-                )
+                    'Naive fine-tuning launched since no pt_train provided.')
 
-        if Config.mace_params['save_cpu']:
-            args_list.append('--save_cpu')
-
-        if Config.mace_params['restart_latest']:
-            args_list.append('--restart_latest')
-
-        if Config.mace_params['cueq']:
-            args_list.append('--enable_cueq=True')
-
-        valid_file = Config.mace_params['valid_file']
+        valid_file = Config.mace_params.get('valid_file')
         if valid_file is not None:
             if not isinstance(valid_file, str) or not valid_file.strip():
                 raise ValueError('valid_file must be a non-empty path string.')
             if not os.path.exists(valid_file):
                 raise FileNotFoundError(
-                    f'valid_file path does not exist: {valid_file}'
-                )
-            args_list.append(f'--valid_file={valid_file}')
+                    f'valid_file path does not exist: {valid_file}')
+            cli_dict['valid_file'] = valid_file
             logger.info(f'Using structures in {valid_file} as validation set')
         else:
-            args_list.append(f'--valid_fraction={str(self.valid_fraction)}')
+            cli_dict['valid_fraction'] = self.valid_fraction
 
-        args = mace.tools.build_default_arg_parser().parse_args(args_list)
+        for key, value in Config.mace_params.items():
+            if key not in cli_dict and key not in ('pt_train', 'valid_file',
+                                                   'dtype', 'cueq',
+                                                   'calc_device'):
+                cli_dict[key] = value
 
-        return args
+        parser = mace.tools.build_default_arg_parser()
+        args_list = []
+
+        for key, value in cli_dict.items():
+            if value is None:
+                continue
+
+            flag = f'--{key}'
+            action = parser._option_string_actions.get(flag)
+
+            if isinstance(action, argparse._StoreTrueAction):
+                if value:
+                    args_list.append(flag)
+            elif isinstance(value, dict):
+                args_list.extend([flag, json.dumps(value)])
+            else:
+                args_list.extend([flag, str(value)])
+
+        return parser.parse_args(args_list)
 
     @property
     def ase_calculator(self) -> ASECalculator:
@@ -279,15 +234,13 @@ class MACE(MLPotential):
 
         n_cores = n_cores if n_cores is not None else Config.n_cores
         os.environ['OMP_NUM_THREADS'] = str(n_cores)
-        logger.info(
-            'Training a MACE potential on '
-            f'*{len(self.training_data)}* training data, '
-            f'using {n_cores} cores for training.'
-        )
+        logger.info('Training a MACE potential on '
+                    f'*{len(self.training_data)}* training data, '
+                    f'using {n_cores} cores for training.')
 
         for config in self.training_data:
             if self.requires_non_zero_box_size and config.box is None:
-                config.box = mlt.box.Box([100, 100, 100])
+                config.box = mlt.Box([100, 100, 100])
 
         self.training_data.save_xyz(filename=f'{self.name}_data.xyz')
 

@@ -1041,7 +1041,7 @@ def _create_periodic_images(coords: np.ndarray, box_size: float,
         # For each dimension, we can have shifts in negative, none, or positive direction
         shifts = []
         for i, pos in enumerate([x, y, z]):
-            dim_shifts = [0]  # Always include no shift
+            dim_shifts = [0.0]  # Always include no shift
             if pos < contact_threshold:  # Close to lower boundary
                 dim_shifts.append(box_size)
             if pos > (box_size - contact_threshold):  # Close to upper boundary
