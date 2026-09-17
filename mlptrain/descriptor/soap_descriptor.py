@@ -77,14 +77,14 @@ class SoapDescriptor(Descriptor):
             - `m` is the number of input configurations.
             - `n` is the descriptor dimensionality, dependent on `n_max` and `l_max`.
         """
-        logger.info('Setting configuration.')
+        logger.debug('Setting configuration.')
         if isinstance(configurations, mlptrain.Configuration):
             configurations = mlptrain.ConfigurationSet(configurations)
         elif not isinstance(configurations, mlptrain.ConfigurationSet):
             raise ValueError(
                 f'Unsupported configuration type: {type(configurations)}')
 
-        logger.info('Dynamically set elements if they are not provided.')
+        logger.debug('Dynamically set elements if they are not provided.')
         # Dynamically set elements if not provided
         if self.soap is None:
             if not self.elements:
