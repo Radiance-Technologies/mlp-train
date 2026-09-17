@@ -459,7 +459,7 @@ def _gen_active_config(
     if pbc:
         config.box = Box(box_size)
 
-    logger.info(f'Configuration Coordinates Before MD: {config.coordinates}')
+    logger.debug(f'Configuration Coordinates Before MD: {config.coordinates}')
 
     if kwargs['md_program'].lower() == 'openmm':
         assert isinstance(
@@ -489,8 +489,8 @@ def _gen_active_config(
 
     traj.t0 = curr_time  # Increment the initial time (t0)
 
-    logger.info('Trajectory returned.')
-    logger.info(
+    logger.debug('Trajectory returned.')
+    logger.debug(
         f'Configuration Coordinates After MD: {traj.final_frame.coordinates}')
 
     for frame in traj:
@@ -500,9 +500,9 @@ def _gen_active_config(
             frame.box = Box([100, 100, 100])
         # frame.box = Box([100, 100, 100])
 
-    logger.info(f'Evaluating the Selector {selector}')
+    logger.debug(f'Evaluating the Selector {selector}')
 
-    logger.info(f'Trajectory: {traj}')
+    logger.debug(f'Trajectory: {traj}')
 
     # Evaluate the selector on the final frame
     selector(

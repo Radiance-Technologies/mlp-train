@@ -241,8 +241,8 @@ def _run_mlp_md(
 
     ase_atoms = configuration.ase_atoms
     traj_name = _get_traj_name(restart_files=restart_files, **kwargs)
-    logger.info(f'Ase Atoms: {ase_atoms}')
-    logger.info(f'Traj Name: {traj_name}')
+    logger.debug(f'Ase Atoms: {ase_atoms}')
+    logger.debug(f'Traj Name: {traj_name}')
 
     _set_momenta_and_geometry(
         ase_atoms=ase_atoms,
@@ -262,7 +262,7 @@ def _run_mlp_md(
     # If MD is restarted, energies of frames from the previous trajectory
     # are not loaded. Setting them to None
     energies = [None for _ in range(len(ase_traj))]
-    logger.info(f'Energies: {energies}')
+    logger.debug(f'Energies: {energies}')
     biased_energies = deepcopy(energies)
     bias_energies = deepcopy(energies)
 
@@ -297,7 +297,7 @@ def _run_mlp_md(
 
     ase_traj.close()
 
-    logger.info(f'Updated Energies: {energies}')
+    logger.debug(f'Updated Energies: {energies}')
 
     # Duplicate frames removed only if PLUMED bias is initialised not from file
     if restart and isinstance(bias, PlumedBias) and not bias.from_file:

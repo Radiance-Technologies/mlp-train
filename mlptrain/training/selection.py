@@ -99,11 +99,11 @@ class AbsDiffE(SelectionMethod):
             raise ValueError('Evaluating the absolute difference requires a '
                              'method name but None was present')
 
-        logger.info(
-            f'Initial Predicted Energy?: {configuration.energy.predicted}')
+        logger.debug(
+            f'Initial Predicted Energy: {configuration.energy.predicted}')
         if configuration.energy.predicted is None:
             self._configuration.single_point(mlp)
-        logger.info(f'Predicted Energy?: {configuration.energy.predicted}')
+        logger.debug(f'Predicted Energy: {configuration.energy.predicted}')
         self._configuration.single_point(
             method_name,
             n_cores=kwargs['n_cores'],
