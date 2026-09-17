@@ -3,6 +3,7 @@ import mlptrain
 from typing import Union, Optional, Sequence
 from dscribe.descriptors import SOAP
 from mlptrain.descriptor._base import Descriptor
+from mlptrain.log import logger
 
 
 class SoapDescriptor(Descriptor):
@@ -53,9 +54,8 @@ class SoapDescriptor(Descriptor):
 
     def compute_representation(
         self,
-        configurations: Union[
-            mlptrain.Configuration, mlptrain.ConfigurationSet
-        ],
+        configurations: Union[mlptrain.Configuration,
+                              mlptrain.ConfigurationSet],
     ) -> np.ndarray:
         """Create a SOAP vector using dscribe (https://github.com/SINGROUP/dscribe)
         for a set of configurations
@@ -77,20 +77,20 @@ class SoapDescriptor(Descriptor):
             - `m` is the number of input configurations.
             - `n` is the descriptor dimensionality, dependent on `n_max` and `l_max`.
         """
-
+        logger.info('Setting configuration.')
         if isinstance(configurations, mlptrain.Configuration):
             configurations = mlptrain.ConfigurationSet(configurations)
         elif not isinstance(configurations, mlptrain.ConfigurationSet):
             raise ValueError(
-                f'Unsupported configuration type: {type(configurations)}'
-            )
+                f'Unsupported configuration type: {type(configurations)}')
 
+        logger.info('Dynamically set elements if they are not provided.')
         # Dynamically set elements if not provided
         if self.soap is None:
             if not self.elements:
                 self.elements = list(
-                    set(atom.label for c in configurations for atom in c.atoms)
-                )
+                    set(atom.label for c in configurations
+                        for atom in c.atoms))
 
             self.soap = SOAP(
                 species=self.elements,
@@ -100,9 +100,12 @@ class SoapDescriptor(Descriptor):
                 average=self.average,
             )
 
+        logger.info('Create Soap.')
+
         soap_vec = self.soap.create(
-            [conf.ase_atoms for conf in configurations]
-        )
+            [conf.ase_atoms for conf in configurations], verbose=True)
+
+        logger.info('Return Soap bector.')
         return soap_vec if soap_vec.ndim > 1 else soap_vec.reshape(1, -1)
 
     def kernel_vector(
@@ -129,11 +132,15 @@ class SoapDescriptor(Descriptor):
         Returns:
             (np.ndarray): Vector, shape = len(configurations)"""
 
+        logger.info('Determining the kernel vector representations.')
         v1 = self.compute_representation(configuration)[0]
         m1 = self.compute_representation(configurations)
 
         # Normalize vectors
+        logger.info('Normalizing the kernel vectors.')
         v1 /= np.linalg.norm(v1)
         m1 /= np.linalg.norm(m1, axis=1, keepdims=True)
+
+        logger.info('Calculating the kernel matrix.')
 
         return np.power(np.dot(m1, v1), zeta)

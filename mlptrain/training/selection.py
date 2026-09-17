@@ -99,8 +99,11 @@ class AbsDiffE(SelectionMethod):
             raise ValueError('Evaluating the absolute difference requires a '
                              'method name but None was present')
 
+        logger.info(
+            f'Initial Predicted Energy?: {configuration.energy.predicted}')
         if configuration.energy.predicted is None:
             self._configuration.single_point(mlp)
+        logger.info(f'Predicted Energy?: {configuration.energy.predicted}')
         self._configuration.single_point(
             method_name,
             n_cores=kwargs['n_cores'],
@@ -173,12 +176,15 @@ class AtomicEnvSimilarity(SelectionMethod):
 
             mlp: Machine learning potential with some associated training data
         """
+        logger.info(
+            f'AtomicEnvSimilarity Selection started with size {len(mlp.training_data)} training data.'
+        )
         if len(mlp.training_data) == 0:
             return None
 
         self._k_vec = self.descriptor.kernel_vector(
             configuration, configurations=mlp.training_data, zeta=8)
-
+        logger.info('AtomicEnvSimilarity Selection finished.')
         return None
 
     @property

@@ -459,6 +459,8 @@ def _gen_active_config(
     if pbc:
         config.box = Box(box_size)
 
+    logger.info(f'Configuration Coordinates Before MD: {config.coordinates}')
+
     if kwargs['md_program'].lower() == 'openmm':
         assert isinstance(
             mlp, mlptrain.potentials.MACE
@@ -487,12 +489,20 @@ def _gen_active_config(
 
     traj.t0 = curr_time  # Increment the initial time (t0)
 
+    logger.info('Trajectory returned.')
+    logger.info(
+        f'Configuration Coordinates After MD: {traj.final_frame.coordinates}')
+
     for frame in traj:
         if pbc:
             frame.box = Box(box_size)
         elif frame.box is None:
             frame.box = Box([100, 100, 100])
         # frame.box = Box([100, 100, 100])
+
+    logger.info(f'Evaluating the Selector {selector}')
+
+    logger.info(f'Trajectory: {traj}')
 
     # Evaluate the selector on the final frame
     selector(
@@ -503,6 +513,8 @@ def _gen_active_config(
         keep_output_files=keep_output_files,
         idx=kwargs['idx'],
     )
+
+    logger.info(f'Selector {selector} evaluated.')
 
     if selector.select:
         if selector.check:

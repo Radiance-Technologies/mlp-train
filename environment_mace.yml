@@ -12,7 +12,7 @@ dependencies:
   - autode=1.4.5
   - coloredlogs
   - cython
-  - dscribe=2.0
+  - dscribe>=2.0
   - matplotlib-base>=3.9.0
   - numpy
   - py-plumed
@@ -25,9 +25,9 @@ dependencies:
   - openmm-ml=1.2
   - git
   - seaborn
+  - cuequivariance
+  - cuequivariance-torch
   - pip:
     - ase@git+https://gitlab.com/ase/ase.git@f2615a6e9a # For PLUMED
-    - mace-torch==0.3.10
-    - cuequivariance==0.1.0
-    - cuequivariance-torch==0.1.0
-    - cuequivariance-ops-torch-cu11==0.1.0
+    - git+https://github.com/Radiance-Technologies/mace.git@dev
+    - cuequivariance-ops-torch-cu13

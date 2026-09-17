@@ -123,7 +123,6 @@ class MACE(MLPotential):
     def args(self) -> 'argparse.Namespace':
         """Namespace containing default and custom MACE parameters"""
         import mace.tools
-        import json
 
         cli_dict = {
             'name': self.name,
@@ -133,9 +132,9 @@ class MACE(MLPotential):
             'valid_batch_size': self.batch_size,
             'energy_key': 'energy',
             'forces_key': 'forces',
-            'default_dtype': str(Config.mace_params['dtype']),
-            'enable_cueq': str(Config.mace_params['cueq']),
-            'E0s': self.get_E0s,
+            'default_dtype': Config.mace_params['dtype'],
+            'enable_cueq': Config.mace_params['cueq'],
+            'E0s': Config.mace_params.get('E0s', str(self.get_E0s)),
         }
 
         if getattr(self, 'foundation', None) is not None:
@@ -172,9 +171,9 @@ class MACE(MLPotential):
             cli_dict['valid_fraction'] = self.valid_fraction
 
         for key, value in Config.mace_params.items():
-            if key not in cli_dict and key not in ('pt_train', 'valid_file',
-                                                   'dtype', 'cueq',
-                                                   'calc_device'):
+            if key not in cli_dict and key not in ('E0s', 'pt_train',
+                                                   'valid_file', 'dtype',
+                                                   'cueq', 'calc_device'):
                 cli_dict[key] = value
 
         parser = mace.tools.build_default_arg_parser()
@@ -190,8 +189,6 @@ class MACE(MLPotential):
             if isinstance(action, argparse._StoreTrueAction):
                 if value:
                     args_list.append(flag)
-            elif isinstance(value, dict):
-                args_list.extend([flag, json.dumps(value)])
             else:
                 args_list.extend([flag, str(value)])
 
@@ -222,13 +219,16 @@ class MACE(MLPotential):
         import torch
         from mace.cli.run_train import run as train_mace
 
-        def remove_root_logging_handlers() -> list[logging.Handler]:
+        def remove_root_logging_handlers(
+                close: bool = False) -> list[logging.Handler]:
             """Remove and return root logging handlers before calling MACE"""
 
             # Remove existing logging as MACE creates it's own loggers
             root_logger = logging.getLogger()
             root_logging_handlers = list(root_logger.handlers)
             for handler in root_logging_handlers:
+                if close:
+                    handler.close()
                 root_logger.removeHandler(handler)
             return root_logging_handlers
 
@@ -253,7 +253,7 @@ class MACE(MLPotential):
             train_mace(self.args)
         finally:
             # Remove MACE root logging handlers and restore pre-existing ones.
-            remove_root_logging_handlers()
+            remove_root_logging_handlers(close=True)
             root_logger = logging.getLogger()
             for handler in our_logging_handlers:
                 root_logger.addHandler(handler)
