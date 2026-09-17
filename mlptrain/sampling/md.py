@@ -428,6 +428,7 @@ def _run_dynamics(
 
     logger.info(f'Running {n_steps:.0f} steps with a timestep of {dt} fs')
     dyn.run(steps=n_steps)
+    dyn.close()
 
     if isinstance(ase_atoms.calc, PlumedCalculator):
         # The calling process waits until PLUMED process has finished
