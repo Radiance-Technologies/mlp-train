@@ -514,7 +514,7 @@ def _gen_active_config(
         idx=kwargs['idx'],
     )
 
-    logger.info(f'Selector {selector} evaluated.')
+    logger.debug(f'Selector {selector} evaluated.')
 
     if selector.select:
         if selector.check:

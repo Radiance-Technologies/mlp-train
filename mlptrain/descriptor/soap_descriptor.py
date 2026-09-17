@@ -100,12 +100,12 @@ class SoapDescriptor(Descriptor):
                 average=self.average,
             )
 
-        logger.info('Create Soap.')
+        logger.debug('Create Soap.')
 
         soap_vec = self.soap.create(
             [conf.ase_atoms for conf in configurations], verbose=True)
 
-        logger.info('Return Soap bector.')
+        logger.debug('Return Soap Vector.')
         return soap_vec if soap_vec.ndim > 1 else soap_vec.reshape(1, -1)
 
     def kernel_vector(
@@ -132,15 +132,15 @@ class SoapDescriptor(Descriptor):
         Returns:
             (np.ndarray): Vector, shape = len(configurations)"""
 
-        logger.info('Determining the kernel vector representations.')
+        logger.debug('Determining the kernel vector representations.')
         v1 = self.compute_representation(configuration)[0]
         m1 = self.compute_representation(configurations)
 
         # Normalize vectors
-        logger.info('Normalizing the kernel vectors.')
+        logger.debug('Normalizing the kernel vectors.')
         v1 /= np.linalg.norm(v1)
         m1 /= np.linalg.norm(m1, axis=1, keepdims=True)
 
-        logger.info('Calculating the kernel matrix.')
+        logger.debug('Calculating the kernel matrix.')
 
         return np.power(np.dot(m1, v1), zeta)
