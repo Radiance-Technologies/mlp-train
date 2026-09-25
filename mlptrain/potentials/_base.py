@@ -121,6 +121,10 @@ class MLPotential(ABC):
             # Evaluate predicted energies and forces
             configuration.energy.predicted = atoms.get_potential_energy()
             configuration.forces.predicted = atoms.get_forces()
+            configuration.energy.predicted_variance = atoms.calc.get_property(
+                'energy_var', atoms)
+            configuration.forces.predicted_variance = atoms.calc.get_property(
+                'forces_var', atoms)
 
         return None
 
@@ -299,9 +303,9 @@ class MLPotential(ABC):
                 mult=_spin_multiplicites[symbol],
             )
 
-            config.single_point(
-                method=method_name, n_cores=1, output_name=symbol
-            )
+            config.single_point(method=method_name,
+                                n_cores=1,
+                                output_name=symbol)
 
             if config.energy.true is None:
                 if symbol == 'H':

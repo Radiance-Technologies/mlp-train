@@ -9,6 +9,9 @@ class Forces:
         self,
         predicted: Optional[np.ndarray] = None,
         true: Optional[np.ndarray] = None,
+        variance: Optional[np.ndarray] = None,
+        aleatoric_uncertainty: Optional[np.ndarray] = None,
+        epistemic_uncertainty: Optional[np.ndarray] = None,
     ):
         """
         Forces
@@ -21,6 +24,9 @@ class Forces:
 
         self.predicted = predicted
         self.true = true
+        self.variance = variance
+        self.aleatoric_uncertainty = aleatoric_uncertainty
+        self.epistemic_uncertainty = epistemic_uncertainty
 
     @property
     def delta(self) -> np.ndarray:

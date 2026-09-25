@@ -10,6 +10,9 @@ class Energy:
         true: Optional[float] = None,
         bias: Optional[float] = None,
         inherited_bias: Optional[float] = None,
+        variance: Optional[float] = None,
+        aleatoric_uncertainty: Optional[float] = None,
+        epistemic_uncertainty: Optional[float] = None,
     ):
         """
         Energy
@@ -25,6 +28,9 @@ class Energy:
         self.true = true
         self.bias = bias
         self.inherited_bias = inherited_bias
+        self.variance = variance
+        self.aleatoric_uncertainty = aleatoric_uncertainty
+        self.epistemic_uncertainty = epistemic_uncertainty
 
     @property
     def delta(self) -> float:

@@ -8,7 +8,7 @@ dependencies:
   - python=3.10
   - pip
   - libgfortran=14.*
-  - ase
+  - ase>=3.28
   - autode=1.4.5
   - coloredlogs
   - cython
@@ -28,6 +28,6 @@ dependencies:
   - cuequivariance
   - cuequivariance-torch
   - pip:
-    - ase@git+https://gitlab.com/ase/ase.git@f2615a6e9a # For PLUMED
     - git+https://github.com/Radiance-Technologies/mace.git@dev
     - cuequivariance-ops-torch-cu13
+    - clearml
