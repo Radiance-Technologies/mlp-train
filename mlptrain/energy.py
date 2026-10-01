@@ -22,6 +22,10 @@ class Energy:
             predicted:
             true:
             bias:
+            inherited_bias:
+            variance:
+            aleatoric_uncertainty:
+            epistemic_uncertainty:
         """
 
         self.predicted = predicted

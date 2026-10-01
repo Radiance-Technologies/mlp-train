@@ -20,6 +20,9 @@ class Forces:
         Arguments:
             predicted:
             true:
+            variance:
+            aleatoric_uncertainty:
+            epistemic_uncertainty:
         """
 
         self.predicted = predicted
