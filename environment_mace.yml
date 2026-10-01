@@ -28,6 +28,7 @@ dependencies:
   - cuequivariance
   - cuequivariance-torch
   - pip:
-    - git+https://github.com/Radiance-Technologies/mace.git@dev
+    # - git+https://github.com/Radiance-Technologies/mace.git@dev
+    - -e ../mace
     - cuequivariance-ops-torch-cu13
     - clearml
