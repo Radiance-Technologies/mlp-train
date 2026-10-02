@@ -9,7 +9,7 @@ class Forces:
         self,
         predicted: Optional[np.ndarray] = None,
         true: Optional[np.ndarray] = None,
-        variance: Optional[np.ndarray] = None,
+        predicted_variance: Optional[np.ndarray] = None,
         aleatoric_uncertainty: Optional[np.ndarray] = None,
         epistemic_uncertainty: Optional[np.ndarray] = None,
     ):
@@ -20,14 +20,14 @@ class Forces:
         Arguments:
             predicted:
             true:
-            variance:
+            predicted_variance:
             aleatoric_uncertainty:
             epistemic_uncertainty:
         """
 
         self.predicted = predicted
         self.true = true
-        self.variance = variance
+        self.predicted_variance = predicted_variance
         self.aleatoric_uncertainty = aleatoric_uncertainty
         self.epistemic_uncertainty = epistemic_uncertainty
 
