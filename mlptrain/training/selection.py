@@ -2,7 +2,7 @@ import mlptrain
 import numpy as np
 from copy import deepcopy
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable, Any
 from mlptrain.log import logger
 
 if TYPE_CHECKING:
@@ -62,6 +62,92 @@ class SelectionMethod(ABC):
 
     def copy(self) -> 'SelectionMethod':
         return deepcopy(self)
+
+
+def base_comparator(a,
+                    e,
+                    aw=0.2,
+                    ew=0.8,
+                    log_n=np.log(10),
+                    log_t=np.log(0.1),
+                    **kwargs):
+    linear = a * aw + e * ew
+    log_linear = np.log(linear)
+    ratio = log_linear - log_t
+    return ratio / log_n
+
+
+class EvidentialUncertainty(SelectionMethod):
+
+    def __init__(self,
+                 results: dict[str, dict[str, Any]],
+                 comparator: Callable = base_comparator,
+                 reducer: Callable = np.max,
+                 combiner: Callable = np.max):
+        super().__init__()
+        self.results = results
+        self.comparator = comparator
+        self.reducer = reducer
+        self.combiner = combiner
+
+        self._state = None
+        self._uncertainties = None
+
+    def __call__(self, configuration, mlp, **kwargs) -> None:
+        self.configuration = configuration
+        self.configuration.single_point(mlp)
+
+    @property
+    def configuration(self):
+        return self._configuration
+
+    @configuration.setter
+    def configuration(self, value):
+        if self._configuration is not value:
+            self._configuration = value
+            self._uncertainties = None
+            self._state = None
+
+    @property
+    def state(self) -> float:
+        if self._state is None:
+            states = []
+            for key, (a, e) in self.uncertainties.items():
+                state = self.comparator(a, e, **self.results[key])
+                states.append(float(self.reducer(state)))
+
+            self._state = float(self.combiner(states))
+
+        return self._state
+
+    @property
+    def uncertainties(self) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+        if self._uncertainties is None:
+            if self.configuration is None:
+                raise ValueError("Configuration must be defined.")
+
+            self._uncertainties = {}
+
+            for key in self.results.keys():
+                result = getattr(self.configuration, key)
+                a = result.aleatoric_uncertainty
+                e = result.epistemic_uncertainty
+                if a is not None and e is not None:
+                    self._uncertainties[key] = (np.asarray(a), np.asarray(e))
+
+        return self._uncertainties
+
+    @property
+    def select(self) -> bool:
+        return 0 <= self.state < 1
+
+    @property
+    def too_large(self) -> bool:
+        return self.state >= 1
+
+    @property
+    def n_backtrack(self) -> int:
+        return 100
 
 
 class AbsDiffE(SelectionMethod):
