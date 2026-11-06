@@ -178,7 +178,7 @@ yapf = "*"
 mace-torch = {branch = "dev", git = "https://github.com/Radiance-Technologies/mace.git"}
 
 [tool.pixi.feature.local.pypi-dependencies]
-mace-torch = {editable = true, path = "/home/dwalkercollins/mace"}
+mace-torch = {editable = true, path = "../mace"}
 
 [tool.pixi.feature.scripts.dependencies]
 
