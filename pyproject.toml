@@ -1,65 +1,219 @@
 [build-system]
-requires = ["flit_core >=3.4,<4"]
-build-backend = "flit_core.buildapi"
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools >= 60",
+    "setuptools-scm >= 8.0",
+]
 
 [project]
-name = "mlptrain"
-version = "1.0.0b0"
+authors = [
+    {email = "davy.walkercollins@radiancetech.com", name = "Davy Walker Collins"},
+    {name = "Duarte Group"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+]
 description = "Machine Learning Potential Training"
-authors = [{name = "Duarte Group"}]
+dynamic = ["version"]
+license = {text = "Proprietary"}
+maintainers = [
+    {email = "davy.walkercollins@radiancetech.com", name = "Davy Walker Collins"},
+]
+name = "mlptrain"
 readme = "README.md"
-license = {file = "LICENSE.md"}
-classifiers = ["License :: OSI Approved :: MIT License"]
 requires-python = ">=3.10"
 
-[dependency-groups]
-dev = [
-  'pre-commit>=3.6',
-  'pytest~=8.0',
-  'pytest-cov~=5.0',
-  'ty==0.0.69',
+[project.scripts]
+
+[tool.coverage]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == .__main__.:",
+    "pragma: no cover",
 ]
 
-[project.optional-dependencies]
-docs = [
-  'sphinx~=7.4.7',
-  'sphinx-copybutton~=0.5.2',
-  'sphinx-rtd-theme~=3.0.2', 
+[tool.coverage.run]
+omit = [
+    "__init__.py",
+    "_version.py",
+    "run_mypy.py",
+    "tests/*",
+    "venv_check.py",
+]
+source = ["mlptrain"]
+
+# Turn on strict type checking by default
+# strict is global and cannot be overridden, so instead split it up into
+# its individually overridable constituent flags
+[tool.mypy]
+# Important, do not skip untyped functions
+check_untyped_defs = true
+# May be tricky
+disallow_any_generics = true
+# Enforces type hints
+disallow_incomplete_defs = true
+# May be tricky
+disallow_subclassing_any = true
+# Enforces type hints
+disallow_untyped_calls = true
+# May be tricky
+disallow_untyped_decorators = true
+# Enforces type hints
+disallow_untyped_defs = true
+# Should be easy (--strict_concatenate is deprecated)
+extra_checks = true
+# Should be easy
+no_implicit_reexport = true
+python_version = "3.12"
+# Should be easy
+strict_equality = true
+# Cannot override
+warn_redundant_casts = true
+# May be tricky
+warn_return_any = true
+# Cannot override
+warn_unused_configs = true
+# Should be easy; catch redundant type: ignore
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+check_untyped_defs = false
+disallow_any_generics = false
+disallow_incomplete_defs = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+disallow_untyped_defs = false
+extra_checks = false
+module = "tests.*"
+no_implicit_reexport = false
+strict_equality = false
+warn_return_any = false
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+check_untyped_defs = false
+disallow_any_generics = false
+disallow_incomplete_defs = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+disallow_untyped_defs = false
+extra_checks = false
+ignore_missing_imports = true
+module = "torch_geometric.*"
+no_implicit_reexport = false
+strict_equality = false
+warn_return_any = false
+warn_unused_ignores = false
+
+[tool.numpydoc_validation]
+# All checks are performed except those listed explicitly
+checks = [
+    "ES01",  # don't require extended summaries
+    "EX01",  # don't require examples section
+    "GL08",  # don't require objects to have docstrings
+    "PR01",  # don't require parameters section
+    "PR09",  # don't require parameter descriptions to end with a period
+    "RT01",  # don't require returns section
+    "RT05",  # don't require return description to end with a period
+    "SA01",  # don't require see also section
+    "SA02",  # don't require period at end of see also section
+    "SA04",  # don't require see also section to have description
+    "SS05",  # don't require an infinitive verb at start of description
+    "all",  # report on all checks, except the above
 ]
 
-[project.urls]
-Home = "https://github.com/duartegroup/mlp-train"
-Source = "https://github.com/duartegroup/mlp-train"
+[tool.pixi.dependencies]
+ase = "==3.29.0"
+autode = "==1.4.5"
+coloredlogs = "==15.0.1"
+cuda-nvcc = "*"
+cuequivariance = "==0.12.0"
+cuequivariance-torch = "==0.12.0"
+cython = "==3.3.0"
+dscribe = "==2.1.2"
+git = "==2.56.0"
+libgfortran = "==14.4.0"
+matplotlib-base = "==3.11.2"
+numpy = "==1.26.4"
+pip = "==26.2.1"
+py-plumed = "==2.9.2"
+python = "3.12.*"
+pytorch = "==2.13.0"
+scikit-learn = "==1.9.1"
+scipy = "==1.13.1"
+seaborn = "==0.13.2"
+xtb = "==6.7.1"
 
-[tool.ruff]
-line-length = 79
+[tool.pixi.environments]
+all = {features = ["dev", "git", "scripts", "test"], solve-group = "default"}
+default = {features = ["git"], solve-group = "default"}
+dev = {features = ["dev", "git"], solve-group = "default"}
+local = {features = ["local"]}
+scripts = {features = ["git", "scripts"], solve-group = "default"}
+test = {features = ["git", "test"], solve-group = "default"}
 
-[tool.ruff.format]
-quote-style = "single"
+[tool.pixi.feature.dev.dependencies]
+docformatter = "*"
+isort = "*"
+mypy = "*"
+oslex = "*"
+pandas-stubs = "*"
+pre-commit = "*"
+ruff = "*"
+scipy-stubs = "*"
+toml = "*"
+types-Pillow = "*"
+types-PyYAML = "*"
+types-seaborn = "*"
+types-toml = "*"
+types-tqdm = "*"
+yapf = "*"
 
-[tool.ruff.lint]
-extend-select = ["TID253"]
+[tool.pixi.feature.dev.pypi-dependencies]
 
-[tool.ruff.lint.flake8-tidy-imports]
-# Ban certain modules from being imported at module level, instead requiring
-# that they're imported lazily (e.g., within a function definition). (rule TID253)
-banned-module-level-imports = ["mace", "openmm", "openmmml", "sklearn", "torch"]
+[tool.pixi.feature.git.pypi-dependencies]
+mace-torch = {branch = "dev", git = "https://github.com/Radiance-Technologies/mace.git"}
+
+[tool.pixi.feature.local.pypi-dependencies]
+mace-torch = {editable = true, path = "/home/dwalkercollins/mace"}
+
+[tool.pixi.feature.scripts.dependencies]
+
+[tool.pixi.feature.scripts.pypi-dependencies]
+
+[tool.pixi.feature.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+pytest-dependency = "*"
+pytest-mock = "*"
+pytest-order = "*"
+
+[tool.pixi.feature.test.pypi-dependencies]
+
+[tool.pixi.pypi-dependencies]
+cuequivariance-ops-torch-cu13 = "==0.12.0"
+
+[tool.pixi.workspace]
+channels = ["conda-forge", "pytorch"]
+platforms = [{cuda = "13.3", name = "linux-cuda", platform = "linux-64"}, {name = "linux-cpu", platform = "linux-64"}]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report term --cov-report xml"
-filterwarnings = [
-  'ignore:You are using `torch.load`:FutureWarning:e3nn|mace|openmmml:',
-  'ignore:The TorchScript type system:UserWarning:torch:',
-]
+addopts = ["--durations-min=1.0", "--durations=0", "--order-dependencies", "-rsx"]
 
-[tool.ty.terminal]
-# Error if ty emits any warning-level diagnostics.
-error-on-warning = true
-
-# Don't typecheck python scripts from examples/*_paper/
-[[tool.ty.overrides]]
+[tool.setuptools.packages.find]
 include = [
-  "examples/*paper*/*",
+    "mlptrain*",
 ]
-[tool.ty.overrides.rules]
-all = "ignore"
+
+[tool.setuptools_scm]
+version_file = "mlptrain/_version.py"
+
+[tool.tomlsort]
+all = true
+sort_first = ["build-system", "project"]
+spaces_before_inline_comment = 2
+spaces_indent_inline_array = 4
+trailing_comma_inline_array = true

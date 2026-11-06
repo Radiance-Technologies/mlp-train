@@ -1,0 +1,31 @@
+exclude = ["*.ipynb"]
+line-length = 88
+
+[lint]
+# T4 not available. N804 and N805 replace B902.
+# E501 with a longer line length replaces B950.
+ignore = [
+    "B901",
+    "B903",
+    "B904",
+    "B905",
+    "B909",
+    "B911",
+    "D200",
+    "E203",
+    "E266",
+    "F722",
+]
+select = ["B", "C901", "D", "E", "F", "N804", "N805", "W"]
+
+[lint.mccabe]
+max-complexity = 15
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[lint.pycodestyle]
+max-doc-length = 72
+
+[lint.pydocstyle]
+convention = "numpy"

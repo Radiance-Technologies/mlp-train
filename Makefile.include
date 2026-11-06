@@ -1,0 +1,16 @@
+SHELL := /bin/bash
+
+export CONDA_OVERRIDE_CUDA ?= 13.3
+
+# Detect root directory based on Git repository or root marker file
+ifndef GITROOT
+GITROOT := $(shell while :; do [ -d .git ] && [ -f .mlp-train-root ] && { echo `pwd`; break; }; [ `pwd` = "/" ] && { echo ""; break; }; cd ..; done)
+endif
+
+# Fallback GITROOT to current directory if not in a Git repository
+ifeq ($(GITROOT),)
+GITROOT := $(shell pwd)
+endif
+
+# Detect current package directory name
+PACKAGE:=$(shell pwd | xargs basename)

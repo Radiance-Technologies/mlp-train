@@ -1,0 +1,100 @@
+image: "${CI_REGISTRY}/radpy/radtorch/torch-base:2.7.0-py3.12-slim"
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - when: always
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+    - .mypy_cache
+
+stages:
+  - test
+  - release
+
+before_script:
+  - apt-get -y update
+  - apt-get -y install pkg-config make g++ curl
+  - curl -fsSL https://pixi.sh/install.sh | bash
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - mkdir -p ../mace
+  - make install
+
+precommit:
+  interruptible: true
+  stage: test
+  before_script:
+    # Global before_script does not get prepended
+    # Track https://gitlab.com/gitlab-org/gitlab/-/issues/258606
+    - apt-get -y update
+    - apt-get -y install pkg-config make g++ curl
+    - curl -fsSL https://pixi.sh/install.sh | bash
+    - export PATH="$HOME/.pixi/bin:$PATH"
+    - mkdir -p ../mace
+    - pip install pre-commit
+    - which ssh-agent || apt-get install openssh-client -qqy
+    - eval `ssh-agent -s`
+    - echo "${PRECOMMIT_CI_PRIVATE_KEY}" | base64 -d | ssh-add - > /dev/null # add ssh key
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_PUBLIC_KEY" >> ~/.ssh/id_rsa.pub
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - make install  # mypy hook needs dependencies installed
+    - make dev
+    - precommit_passed=0
+    - git fetch --force origin ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}:${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
+    - pre-commit run --files $(git diff-tree --no-commit-id --name-only -r HEAD origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}) || precommit_passed=$?
+    - if (( $precommit_passed == 0 )) ; then echo "All pre-commit checks passed"; exit 0; fi
+    - files_changed=0
+    - test "$(git status -uno -s)" != "" || files_changed=$?
+    - if (( $files_changed != 0 )) ; then echo "Some pre-commit checks failed"; exit 1; fi
+    - git add -u
+    - git config --global user.email "${PRECOMMIT_CI_EMAIL}"
+    - git config --global user.name "${PRECOMMIT_CI_USERNAME}"
+    - git commit -m "[pre-commit-ci] Apply pre-commit hooks." --no-verify
+    - git remote set-url origin ssh://git@${CI_SERVER_HOST}:${CI_SERVER_SSH_PORT}/${CI_PROJECT_PATH}.git
+    - git push origin HEAD:${CI_COMMIT_REF_NAME}
+    - echo "Some pre-commit checks altered files. Fixes pushed as new commit."
+    - exit 1
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+changelog_ci:
+  interruptible: true
+  stage: test
+  script:
+    - changelog_updated=0  # check if the changelog was updated
+    - git fetch --force origin ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}:${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
+    - test -n "$(git diff origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} HEAD CHANGELOG.md)" || changelog_updated=$?
+    - if (( $changelog_updated == 0 )) ; then echo "Changelog updated"; exit 0; else echo "Changelog needs updating"; exit 1; fi
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+runTests:
+  stage: test
+  script:
+    - make test
+  rules:
+    # only run tests for MRs, tags, and main
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+release:
+  interruptible: true
+  stage: release
+  script:
+    - pip install twine build
+    - python -m build
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url https://rsngit.radiancetech.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi  dist/*
+  only:
+    - tags
