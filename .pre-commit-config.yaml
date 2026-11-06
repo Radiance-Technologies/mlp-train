@@ -30,7 +30,6 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: debug-statements
-      - id: requirements-txt-fixer
       - id: check-merge-conflict
       - id: end-of-file-fixer
   - repo: https://github.com/astral-sh/ruff-pre-commit
