@@ -2,6 +2,7 @@ image: "${CI_REGISTRY}/radpy/radtorch/torch-base:2.7.0-py3.12-slim"
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIXI_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pixi"
 
 workflow:
   rules:
@@ -12,6 +13,7 @@ workflow:
 cache:
   paths:
     - .cache/pip
+    - .cache/pixi
     - venv/
     - .mypy_cache
 
