@@ -25,6 +25,7 @@ before_script:
   - curl -fsSL https://pixi.sh/install.sh | bash
   - export PATH="$HOME/.pixi/bin:$PATH"
   - mkdir -p ../mace
+  - echo -e '[project]\nname = "mace-torch"' > ../mace/pyproject.toml
   - make install
 
 precommit:
@@ -38,6 +39,7 @@ precommit:
     - curl -fsSL https://pixi.sh/install.sh | bash
     - export PATH="$HOME/.pixi/bin:$PATH"
     - mkdir -p ../mace
+    - echo -e '[project]\nname = "mace-torch"' > ../mace/pyproject.toml
     - pip install pre-commit
     - which ssh-agent || apt-get install openssh-client -qqy
     - eval `ssh-agent -s`
