@@ -28,6 +28,7 @@ before_script:
   - export PATH="$HOME/.pixi/bin:$PATH"
   - mkdir -p ../mace
   - echo -e '[project]\nname = "mace-torch"' > ../mace/pyproject.toml
+  - find $PIXI_CACHE_DIR -name ".lock" -delete || true
   - make install
 
 precommit:
@@ -42,6 +43,7 @@ precommit:
     - export PATH="$HOME/.pixi/bin:$PATH"
     - mkdir -p ../mace
     - echo -e '[project]\nname = "mace-torch"' > ../mace/pyproject.toml
+    - find $PIXI_CACHE_DIR -name ".lock" -delete || true
     - pip install pre-commit
     - which ssh-agent || apt-get install openssh-client -qqy
     - eval `ssh-agent -s`
